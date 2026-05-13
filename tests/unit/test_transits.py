@@ -216,6 +216,9 @@ def test_profile_day_forecast_registered_as_mcp_tool() -> None:
 
     assert "calculate_profile_day_forecast" in {tool.name for tool in tools}
     assert "get_profile_by_name" in {tool.name for tool in tools}
+    assert "send_telegram_pdf" in {tool.name for tool in tools}
+    assert "send_telegram_markdown" in {tool.name for tool in tools}
+    assert "send_telegram_message" not in {tool.name for tool in tools}
 
 
 def test_month_date_range(transit_service: TransitService) -> None:

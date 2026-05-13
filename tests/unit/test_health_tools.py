@@ -53,5 +53,9 @@ def test_list_supported_features_returns_planned_tools() -> None:
         "calculate_profile_year_forecast",
         "calculate_profile_day_forecast",
         "generate_transit_chart_svg",
-        "send_telegram_message",
+        "send_telegram_text",
+        "send_telegram_markdown",
+        "send_telegram_pdf",
+        "send_telegram_image",
+        "telegram_outbox_info",
     ]

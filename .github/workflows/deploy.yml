@@ -93,7 +93,7 @@ jobs:
             "$DEPLOY_USER@${{ secrets.DEPLOY_HOST }}" \
             "set -euo pipefail
              cd '$DEPLOY_PATH'
-             '$CONDA_BIN' run -n astro python -c \"import asyncio; from astrology_mcp.mcp_server import create_mcp_server; tools=asyncio.run(create_mcp_server().list_tools()); names={tool.name for tool in tools}; print(sorted(names)); assert 'send_telegram_message' in names; assert 'calculate_profile_day_forecast' in names; assert 'get_profile_by_name' in names\"
+             '$CONDA_BIN' run -n astro python -c \"import asyncio; from astrology_mcp.mcp_server import create_mcp_server; tools=asyncio.run(create_mcp_server().list_tools()); names={tool.name for tool in tools}; print(sorted(names)); assert 'send_telegram_message' not in names; assert 'send_telegram_text' in names; assert 'send_telegram_markdown' in names; assert 'send_telegram_pdf' in names; assert 'send_telegram_image' in names; assert 'telegram_outbox_info' in names; assert 'calculate_profile_day_forecast' in names; assert 'get_profile_by_name' in names\"
             "
 
       - name: Show deployed commit

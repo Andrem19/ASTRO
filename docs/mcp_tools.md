@@ -45,7 +45,11 @@ Returns planned MCP tools:
 - `calculate_profile_year_forecast`
 - `calculate_profile_day_forecast`
 - `generate_transit_chart_svg`
-- `send_telegram_message`
+- `send_telegram_text`
+- `send_telegram_markdown`
+- `send_telegram_pdf`
+- `send_telegram_image`
+- `telegram_outbox_info`
 
 ## `calculate_natal_chart`
 
@@ -160,21 +164,12 @@ Returns:
 - `theme_summary`
 - `llm_day_context`
 
-## Telegram Tool
+## Telegram Tools
 
-`send_telegram_message` sends a message, document, or image to the Telegram `CHAT_ID`
-configured in `.env`. It never accepts a per-request chat id.
+Use the simple Telegram tools first. They send only to the Telegram `CHAT_ID` configured
+in `.env` and do not require the agent to know `TELEGRAM_OUTBOX_DIR`.
 
-Supported files:
-
-- documents: `.pdf`, `.md`
-- images: `.png`, `.jpg`, `.jpeg`, `.webp`
-
-Files must be inside `TELEGRAM_OUTBOX_DIR`. The tool can also create a temporary file
-inside that directory from `text_content` or `content_base64`; temporary files are deleted
-after successful send.
-
-Text-only request:
+### `send_telegram_text`
 
 ```json
 {
@@ -182,25 +177,50 @@ Text-only request:
 }
 ```
 
-Existing file request:
-
-```json
-{
-  "text": "Report",
-  "file_path": "./runtime/telegram_outbox/report.pdf",
-  "caption": "Report PDF"
-}
-```
-
-Create-and-send Markdown request:
+### `send_telegram_markdown`
 
 ```json
 {
   "file_name": "forecast.md",
-  "text_content": "# Forecast\n...",
-  "caption": "Forecast"
+  "markdown": "# Forecast\n...",
+  "caption": "Daily forecast"
 }
 ```
+
+Creates a temporary `.md` file, sends it as a document, and deletes it after success.
+
+### `send_telegram_pdf`
+
+```json
+{
+  "file_name": "forecast.pdf",
+  "pdf_base64": "JVBERi0x...",
+  "caption": "Daily forecast PDF"
+}
+```
+
+Creates a temporary PDF from base64, sends it as a document, and deletes it after success.
+
+### `send_telegram_image`
+
+```json
+{
+  "file_name": "chart.png",
+  "image_base64": "iVBORw0KGgo...",
+  "caption": "Chart"
+}
+```
+
+Supported image extensions: `.png`, `.jpg`, `.jpeg`, `.webp`.
+
+### `telegram_outbox_info`
+
+```json
+{}
+```
+
+Returns the protected outbox path, supported extensions, and file size limit for advanced
+existing-file sends.
 
 Response:
 

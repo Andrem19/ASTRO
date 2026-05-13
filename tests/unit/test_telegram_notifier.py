@@ -8,7 +8,14 @@ import pytest
 from astrology_mcp.config import Settings
 from astrology_mcp.mcp_server import StartupNotificationMiddleware
 from astrology_mcp.services.telegram_notifier import TelegramNotifier, TelegramToolError
-from astrology_mcp.tools.telegram_tools import send_telegram_message
+from astrology_mcp.tools import telegram_tools
+from astrology_mcp.tools.telegram_tools import (
+    send_telegram_image,
+    send_telegram_markdown,
+    send_telegram_pdf,
+    send_telegram_text,
+    telegram_outbox_info,
+)
 
 
 def test_telegram_notifier_disabled_without_env() -> None:
@@ -212,11 +219,175 @@ def test_telegram_failed_send_keeps_created_file(monkeypatch: Any, tmp_path: Pat
     assert Path(exc_info.value.debug_file_path).exists()
 
 
-def test_telegram_tool_reports_not_configured() -> None:
-    result = asyncio.run(send_telegram_message(text="hello"))
+def test_send_telegram_text_wrapper(monkeypatch: Any) -> None:
+    calls: list[str] = []
+
+    class FakeService:
+        async def send_message(self, text: str) -> dict[str, object]:
+            calls.append(text)
+            return {"status": "sent", "sent_type": "message"}
+
+    monkeypatch.setattr(telegram_tools, "_service", FakeService)
+
+    result = asyncio.run(send_telegram_text("hello"))
+
+    assert result == {"status": "sent", "sent_type": "message"}
+    assert calls == ["hello"]
+
+
+def test_send_telegram_markdown_wrapper(monkeypatch: Any) -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeService:
+        async def create_temp_file_and_send(
+            self,
+            file_name: str,
+            text_content: str | None = None,
+            content_base64: str | None = None,
+            caption: str | None = None,
+        ) -> dict[str, object]:
+            calls.append(
+                {
+                    "file_name": file_name,
+                    "text_content": text_content,
+                    "content_base64": content_base64,
+                    "caption": caption,
+                }
+            )
+            return {"status": "sent", "sent_type": "document", "file_deleted": True}
+
+    monkeypatch.setattr(telegram_tools, "_service", FakeService)
+
+    result = asyncio.run(send_telegram_markdown("forecast.md", "# Forecast", "Daily"))
+
+    assert result["status"] == "sent"
+    assert calls == [
+        {
+            "file_name": "forecast.md",
+            "text_content": "# Forecast",
+            "content_base64": None,
+            "caption": "Daily",
+        }
+    ]
+
+
+def test_send_telegram_pdf_wrapper(monkeypatch: Any) -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeService:
+        async def create_temp_file_and_send(
+            self,
+            file_name: str,
+            text_content: str | None = None,
+            content_base64: str | None = None,
+            caption: str | None = None,
+        ) -> dict[str, object]:
+            calls.append(
+                {
+                    "file_name": file_name,
+                    "text_content": text_content,
+                    "content_base64": content_base64,
+                    "caption": caption,
+                }
+            )
+            return {"status": "sent", "sent_type": "document", "file_deleted": True}
+
+    monkeypatch.setattr(telegram_tools, "_service", FakeService)
+
+    result = asyncio.run(send_telegram_pdf("forecast.pdf", "JVBERi0=", "PDF"))
+
+    assert result["status"] == "sent"
+    assert calls == [
+        {
+            "file_name": "forecast.pdf",
+            "text_content": None,
+            "content_base64": "JVBERi0=",
+            "caption": "PDF",
+        }
+    ]
+
+
+def test_send_telegram_image_wrapper(monkeypatch: Any) -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeService:
+        async def create_temp_file_and_send(
+            self,
+            file_name: str,
+            text_content: str | None = None,
+            content_base64: str | None = None,
+            caption: str | None = None,
+        ) -> dict[str, object]:
+            calls.append(
+                {
+                    "file_name": file_name,
+                    "text_content": text_content,
+                    "content_base64": content_base64,
+                    "caption": caption,
+                }
+            )
+            return {"status": "sent", "sent_type": "photo", "file_deleted": True}
+
+    monkeypatch.setattr(telegram_tools, "_service", FakeService)
+
+    result = asyncio.run(send_telegram_image("chart.png", "iVBORw0=", "Chart"))
+
+    assert result["status"] == "sent"
+    assert calls == [
+        {
+            "file_name": "chart.png",
+            "text_content": None,
+            "content_base64": "iVBORw0=",
+            "caption": "Chart",
+        }
+    ]
+
+
+def test_simple_telegram_wrappers_return_structured_errors(monkeypatch: Any) -> None:
+    class FakeService:
+        async def create_temp_file_and_send(
+            self,
+            file_name: str,
+            text_content: str | None = None,
+            content_base64: str | None = None,
+            caption: str | None = None,
+        ) -> dict[str, object]:
+            raise TelegramToolError("invalid_base64", "content_base64 is invalid")
+
+    monkeypatch.setattr(telegram_tools, "_service", FakeService)
+
+    result = asyncio.run(send_telegram_pdf("forecast.pdf", "bad"))
+
+    assert result == {
+        "status": "error",
+        "error_type": "invalid_base64",
+        "message": "content_base64 is invalid",
+        "warnings": [],
+    }
+
+
+def test_send_telegram_text_reports_not_configured() -> None:
+    result = asyncio.run(send_telegram_text("hello"))
 
     assert result["status"] == "error"
     assert result["error_type"] == "telegram_not_configured"
+
+
+def test_telegram_outbox_info(monkeypatch: Any) -> None:
+    monkeypatch.setattr(
+        telegram_tools,
+        "get_settings",
+        lambda: Settings(TELEGRAM_OUTBOX_DIR="/tmp/outbox", TELEGRAM_MAX_FILE_SIZE_MB=7),
+    )
+
+    result = telegram_outbox_info()
+
+    assert result == {
+        "status": "ok",
+        "outbox_dir": "/tmp/outbox",
+        "allowed_extensions": [".pdf", ".md", ".png", ".jpg", ".jpeg", ".webp"],
+        "max_file_size_mb": 7,
+    }
 
 
 def test_startup_notification_middleware_sends_success(monkeypatch: Any) -> None:
