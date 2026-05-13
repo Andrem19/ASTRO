@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, cast
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from astrology_mcp.domain.models import ProfileCreate, ProfileUpdate
@@ -20,6 +20,7 @@ class ProfileRepository:
         profile = ProfileModel(
             external_id=payload.external_id,
             name=payload.name,
+            name_normalized=self.normalize_name(payload.name),
             birth_date=payload.birth_date,
             birth_time=payload.birth_time,
             birth_place=payload.birth_place,
@@ -49,11 +50,11 @@ class ProfileRepository:
         include_deleted: bool = False,
         limit: int = 10,
     ) -> list[ProfileModel]:
-        normalized_name = name.strip().lower()
+        normalized_name = self.normalize_name(name)
         statement = (
             select(ProfileModel)
             .options(selectinload(ProfileModel.tags))
-            .where(func.lower(ProfileModel.name) == normalized_name)
+            .where(ProfileModel.name_normalized == normalized_name)
             .order_by(ProfileModel.created_at.desc())
             .limit(limit)
         )
@@ -81,6 +82,8 @@ class ProfileRepository:
         tags = update_data.pop("tags", None)
         for key, value in update_data.items():
             setattr(profile, key, value)
+            if key == "name" and isinstance(value, str):
+                profile.name_normalized = self.normalize_name(value)
         if tags is not None:
             profile.tags = [
                 ProfileTagModel(tag=tag) for tag in self._normalize_tags(cast(list[str], tags))
@@ -98,6 +101,10 @@ class ProfileRepository:
     @staticmethod
     def _normalize_tags(tags: list[str]) -> list[str]:
         return sorted({tag.strip() for tag in tags if tag.strip()})
+
+    @staticmethod
+    def normalize_name(name: str) -> str:
+        return name.strip().casefold()
 
 
 class ChartCacheRepository:

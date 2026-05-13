@@ -83,6 +83,8 @@ exists. Otherwise it calculates a new chart and stores it.
 ## Lookup By Name
 
 Use `get_profile_by_name` when a bot knows the person's name but not `profile_id`.
+Name lookup is Unicode-safe for SQLite: stored names are normalized with Python
+`casefold()`, so Cyrillic names such as `Андрей` can be found with `андрей`.
 The lookup is exact and case-insensitive.
 
 Example:

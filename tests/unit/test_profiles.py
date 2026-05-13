@@ -85,6 +85,15 @@ def test_get_profile_by_name_case_insensitive(profile_service: ProfileService) -
     assert result["profile"]["id"] == profile_id  # type: ignore[index]
 
 
+def test_get_profile_by_name_supports_cyrillic_casefold(profile_service: ProfileService) -> None:
+    created = profile_service.create_profile(_profile_payload(name="Андрей"))
+
+    result = profile_service.get_profile_by_name("андрей")
+
+    assert result["status"] == "found"
+    assert result["profile"]["id"] == created["profile_id"]  # type: ignore[index]
+
+
 def test_get_profile_by_name_can_include_private_notes(profile_service: ProfileService) -> None:
     _create_profile(profile_service)
 
@@ -135,11 +144,14 @@ def test_update_profile(profile_service: ProfileService) -> None:
 
     updated = profile_service.update_profile(
         profile_id,
-        ProfileUpdate.model_validate({"name": "Person B", "tags": ["updated"]}),
+        ProfileUpdate.model_validate({"name": "Андрей", "tags": ["updated"]}),
     )
 
-    assert updated.name == "Person B"
+    assert updated.name == "Андрей"
     assert updated.tags == ["updated"]
+    result = profile_service.get_profile_by_name("андрей")
+    assert result["status"] == "found"
+    assert result["profile"]["id"] == profile_id  # type: ignore[index]
 
 
 def test_soft_delete(profile_service: ProfileService) -> None:
@@ -216,6 +228,42 @@ def test_alembic_migration_runs_inside_astro(tmp_path: Path) -> None:
 
     inspector = inspect(create_engine(f"sqlite+pysqlite:///{database_path}"))
     assert {"profiles", "profile_tags", "chart_cache"} <= set(inspector.get_table_names())
+    assert "name_normalized" in {column["name"] for column in inspector.get_columns("profiles")}
+    assert "ix_profiles_name_normalized" in {
+        index["name"] for index in inspector.get_indexes("profiles")
+    }
+
+
+def test_alembic_name_normalized_migration_backfills_cyrillic(tmp_path: Path) -> None:
+    assert os.environ.get("CONDA_DEFAULT_ENV") == "astro"
+    database_path = tmp_path / "profiles.db"
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", f"sqlite+pysqlite:///{database_path}")
+
+    command.upgrade(config, "0001_profiles")
+    engine = create_engine(f"sqlite+pysqlite:///{database_path}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                INSERT INTO profiles (
+                    id, external_id, name, birth_date, birth_time, created_at, updated_at
+                )
+                VALUES (
+                    'profile-1', NULL, 'Андрей', '1990-01-01', '12:00:00',
+                    '2026-05-14 00:00:00', '2026-05-14 00:00:00'
+                )
+                """
+            )
+        )
+
+    command.upgrade(config, "head")
+
+    with engine.connect() as connection:
+        normalized_name = connection.execute(
+            text("SELECT name_normalized FROM profiles WHERE id = 'profile-1'")
+        ).scalar_one()
+    assert normalized_name == "андрей"
 
 
 def test_sqlite_database_file_is_created(tmp_path: Path) -> None:
@@ -240,6 +288,9 @@ def test_sqlite_tables_created(tmp_path: Path) -> None:
     Base.metadata.create_all(engine)
 
     assert {"profiles", "profile_tags", "chart_cache"} <= set(inspect(engine).get_table_names())
+    assert "name_normalized" in {
+        column["name"] for column in inspect(engine).get_columns("profiles")
+    }
 
 
 def test_sqlite_foreign_keys_are_enforced(tmp_path: Path) -> None:

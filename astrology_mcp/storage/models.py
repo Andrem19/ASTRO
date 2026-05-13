@@ -28,6 +28,7 @@ class ProfileModel(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_string)
     external_id: Mapped[str | None] = mapped_column(String(255), index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name_normalized: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     birth_date: Mapped[date] = mapped_column(Date, nullable=False)
     birth_time: Mapped[time] = mapped_column(Time, nullable=False)
     birth_place: Mapped[str | None] = mapped_column(String(512))
