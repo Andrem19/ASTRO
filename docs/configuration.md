@@ -16,6 +16,10 @@ Core variables:
 - `API_AUTH_ENABLED`
 - `API_KEYS`
 - `LOG_LEVEL`
+- `ALGO_BOT`
+- `CHAT_ID`
+- `TELEGRAM_OUTBOX_DIR`
+- `TELEGRAM_MAX_FILE_SIZE_MB`
 
 SQLite-only variables:
 
@@ -45,3 +49,13 @@ Authentication:
 - `API_AUTH_ENABLED=false`: requests are accepted without credentials.
 - `API_AUTH_ENABLED=true`: requests must include `x-api-key: <key>` or `Authorization: Bearer <key>`.
 - Valid keys are read from comma-separated `API_KEYS`.
+
+Telegram startup notifications:
+
+- `ALGO_BOT`: Telegram bot token.
+- `CHAT_ID`: target chat id.
+- If either value is empty, Telegram notifications are disabled.
+- On successful ASGI startup, the server sends `astro-mcp перезапущен успешно`.
+- If startup fails, the server tries to send `astro-mcp неуспешный запуск: <error>`.
+- `TELEGRAM_OUTBOX_DIR`: protected directory for files that can be sent through the Telegram MCP tool.
+- `TELEGRAM_MAX_FILE_SIZE_MB`: maximum allowed file size for Telegram file sends.

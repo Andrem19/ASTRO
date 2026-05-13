@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import datetime as dt
 from zoneinfo import ZoneInfo
 
 from astrology_mcp.config import get_settings
@@ -24,12 +24,20 @@ def _settings(
     return ForecastCalculationSettings.model_validate(data)
 
 
-def _datetime(value: str) -> datetime:
+def _datetime(value: str) -> dt.datetime:
     normalized = value.replace("Z", "+00:00")
-    parsed = datetime.fromisoformat(normalized)
+    parsed = dt.datetime.fromisoformat(normalized)
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=ZoneInfo("UTC"))
     return parsed.astimezone(ZoneInfo("UTC"))
+
+
+def _day_date(value: str) -> dt.date:
+    return dt.date.fromisoformat(value)
+
+
+def _day_time(value: str | None) -> dt.time:
+    return dt.time.fromisoformat(value or "12:00:00")
 
 
 @log_tool_call("calculate_transits")
@@ -105,6 +113,24 @@ def calculate_profile_year_forecast(
         (settings or {}).get("include_lunar_transits", False)
     )
     return _service().calculate_profile_year_forecast(profile_id, year, forecast_settings)
+
+
+@log_tool_call("calculate_profile_day_forecast")
+def calculate_profile_day_forecast(
+    profile_id: str,
+    date: str,
+    time: str | None = None,
+    timezone: str | None = None,
+    settings: dict[str, object] | None = None,
+) -> dict[str, object]:
+    forecast_settings = _settings(settings, "daily")
+    return _service().calculate_profile_day_forecast(
+        profile_id,
+        _day_date(date),
+        _day_time(time),
+        timezone,
+        forecast_settings,
+    )
 
 
 @log_tool_call("generate_transit_chart_svg")

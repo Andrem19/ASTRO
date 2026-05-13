@@ -138,6 +138,47 @@ class TransitService:
         natal = self._profile_service.get_birth_data(profile_id, settings)
         return self.calculate_year_forecast(natal, year, settings)
 
+    def calculate_profile_day_forecast(
+        self,
+        profile_id: str,
+        target_date: date,
+        target_time: time,
+        timezone: str | None,
+        settings: ForecastCalculationSettings,
+    ) -> dict[str, object]:
+        natal = self._profile_service.get_birth_data(profile_id, settings)
+        zone = ZoneInfo(timezone or natal.timezone or "UTC")
+        target_datetime = datetime.combine(target_date, target_time, tzinfo=zone).astimezone(
+            ZoneInfo("UTC")
+        )
+        result = self.calculate_transits(natal, target_datetime, settings)
+        natal_chart = cast(dict[str, object], result["natal_chart"])
+        transit_chart = cast(dict[str, object], result["transit_chart"])
+        active_transits = cast(list[dict[str, object]], result["transit_to_natal_aspects"])
+        supportive = self._supportive_transits(active_transits)
+        challenging = self._challenging_transits(active_transits)
+        dominant_themes = cast(list[str], result["active_themes"])
+        return {
+            "forecast_type": "day",
+            "profile_id": profile_id,
+            "date": target_datetime.date().isoformat(),
+            "subject": natal_chart["subject"],
+            "natal_chart_summary": self._chart_summary(natal_chart),
+            "transit_chart_summary": self._chart_summary(transit_chart),
+            "active_transits": active_transits[:12],
+            "supportive_transits": supportive[:8],
+            "challenging_transits": challenging[:8],
+            "dominant_themes": dominant_themes,
+            "theme_summary": self._theme_summary(active_transits),
+            "llm_day_context": self._llm_day_context(
+                dominant_themes,
+                supportive,
+                challenging,
+                active_transits,
+            ),
+            "calculation_meta": result["calculation_meta"],
+        }
+
     def generate_transit_chart_svg(self, transit_result: dict[str, object]) -> dict[str, object]:
         try:
             subject = transit_result["natal_chart"]["subject"]["name"]  # type: ignore[index]
@@ -385,6 +426,74 @@ class TransitService:
             for theme in cast(list[object], transit.get("themes", [])):
                 summary[str(theme)].append(transit)
         return {theme: values[:8] for theme, values in summary.items()}
+
+    @staticmethod
+    def _chart_summary(chart: dict[str, object]) -> dict[str, object]:
+        return {
+            "angles": chart["angles"],
+            "dominants": chart["dominants"],
+            "elements_balance": chart["elements_balance"],
+        }
+
+    @staticmethod
+    def _supportive_transits(transits: list[dict[str, object]]) -> list[dict[str, object]]:
+        return [item for item in transits if item["aspect_type"] in {"trine", "sextile"}]
+
+    @staticmethod
+    def _challenging_transits(transits: list[dict[str, object]]) -> list[dict[str, object]]:
+        return [item for item in transits if item["aspect_type"] in {"square", "opposition"}]
+
+    @staticmethod
+    def _theme_focus(
+        theme_summary: dict[str, list[dict[str, object]]],
+        themes: set[str],
+    ) -> list[dict[str, object]]:
+        focus: list[dict[str, object]] = []
+        for theme in FORECAST_THEMES:
+            if theme in themes:
+                focus.extend(theme_summary[theme])
+        return focus[:8]
+
+    @classmethod
+    def _llm_day_context(
+        cls,
+        dominant_themes: list[str],
+        supportive: list[dict[str, object]],
+        challenging: list[dict[str, object]],
+        active_transits: list[dict[str, object]],
+    ) -> dict[str, object]:
+        theme_summary = cls._theme_summary(active_transits)
+        return {
+            "main_day_themes": dominant_themes[:8],
+            "emotional_focus": cls._theme_focus(
+                theme_summary,
+                {"emotions_and_inner_state", "home_and_family"},
+            ),
+            "relationship_focus": cls._theme_focus(
+                theme_summary,
+                {"love_and_relationships", "communication_and_learning"},
+            ),
+            "work_and_direction_focus": cls._theme_focus(
+                theme_summary,
+                {"identity_and_direction", "career_and_public_status"},
+            ),
+            "energy_and_conflict_focus": cls._theme_focus(
+                theme_summary,
+                {"energy_and_conflict", "pressure_and_responsibility"},
+            ),
+            "supportive_signals": supportive[:8],
+            "challenging_signals": challenging[:8],
+            "reflection_questions": [
+                "Which theme asks for the most attention today?",
+                "Where can supportive transits be used deliberately?",
+                "Which challenging signals ask for patience or adjustment?",
+            ],
+            "recommended_tone": "balanced, non-deterministic, respectful",
+            "caveats": [
+                "This is interpretive astrological material, not deterministic prediction",
+                "Avoid making medical, legal, financial, or irreversible life advice",
+            ],
+        }
 
     @staticmethod
     def _llm_context(

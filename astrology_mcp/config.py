@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     api_auth_enabled: bool = Field(default=False, alias="API_AUTH_ENABLED")
     api_keys: Annotated[tuple[str, ...], NoDecode] = Field(default=(), alias="API_KEYS")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    algo_bot: str | None = Field(default=None, alias="ALGO_BOT")
+    chat_id: str | None = Field(default=None, alias="CHAT_ID")
+    telegram_outbox_dir: str = Field(
+        default="./runtime/telegram_outbox",
+        alias="TELEGRAM_OUTBOX_DIR",
+    )
+    telegram_max_file_size_mb: int = Field(default=20, alias="TELEGRAM_MAX_FILE_SIZE_MB")
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -60,6 +67,8 @@ class Settings(BaseSettings):
             raise ValueError("Only SQLite DATABASE_URL values are supported")
         if self.sqlite_busy_timeout_ms < 0:
             raise ValueError("SQLITE_BUSY_TIMEOUT_MS must be >= 0")
+        if self.telegram_max_file_size_mb <= 0:
+            raise ValueError("TELEGRAM_MAX_FILE_SIZE_MB must be > 0")
         return self
 
 

@@ -42,7 +42,9 @@ Returns planned MCP tools:
 - `calculate_year_forecast`
 - `calculate_profile_month_forecast`
 - `calculate_profile_year_forecast`
+- `calculate_profile_day_forecast`
 - `generate_transit_chart_svg`
+- `send_telegram_message`
 
 ## `calculate_natal_chart`
 
@@ -115,9 +117,101 @@ peak dates, themes, and LLM context.
 - `calculate_year_forecast`: build a year forecast from raw natal birth data.
 - `calculate_profile_month_forecast`: build a month forecast for a stored profile.
 - `calculate_profile_year_forecast`: build a year forecast for a stored profile.
+- `calculate_profile_day_forecast`: build a day forecast for a stored profile.
 - `generate_transit_chart_svg`: return a transit chart SVG payload.
 
 See `docs/transits.md` and `docs/forecasts.md`.
+
+### `calculate_profile_day_forecast`
+
+Builds structured LLM material for one profile and one date. It does not write the final
+user-facing interpretation.
+
+Example request:
+
+```json
+{
+  "profile_id": "uuid",
+  "date": "2026-06-01",
+  "time": "12:00:00",
+  "timezone": "Europe/London",
+  "settings": {
+    "house_system": "Placidus",
+    "zodiac_type": "tropical",
+    "include_minor_aspects": false,
+    "max_orb": 3,
+    "include_lunar_transits": true,
+    "include_outer_planet_transits": true
+  }
+}
+```
+
+If `time` is omitted, the server uses `12:00:00`. If `timezone` is omitted, the server
+uses the profile timezone, then falls back to `UTC`.
+
+Returns:
+
+- `active_transits`
+- `supportive_transits`
+- `challenging_transits`
+- `dominant_themes`
+- `theme_summary`
+- `llm_day_context`
+
+## Telegram Tool
+
+`send_telegram_message` sends a message, document, or image to the Telegram `CHAT_ID`
+configured in `.env`. It never accepts a per-request chat id.
+
+Supported files:
+
+- documents: `.pdf`, `.md`
+- images: `.png`, `.jpg`, `.jpeg`, `.webp`
+
+Files must be inside `TELEGRAM_OUTBOX_DIR`. The tool can also create a temporary file
+inside that directory from `text_content` or `content_base64`; temporary files are deleted
+after successful send.
+
+Text-only request:
+
+```json
+{
+  "text": "Daily forecast is ready"
+}
+```
+
+Existing file request:
+
+```json
+{
+  "text": "Report",
+  "file_path": "./runtime/telegram_outbox/report.pdf",
+  "caption": "Report PDF"
+}
+```
+
+Create-and-send Markdown request:
+
+```json
+{
+  "file_name": "forecast.md",
+  "text_content": "# Forecast\n...",
+  "caption": "Forecast"
+}
+```
+
+Response:
+
+```json
+{
+  "status": "sent",
+  "message_id": 123,
+  "chat_id": "42",
+  "sent_type": "message",
+  "file_deleted": false,
+  "warnings": []
+}
+```
 
 ## Error Shape
 

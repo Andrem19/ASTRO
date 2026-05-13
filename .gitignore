@@ -71,6 +71,7 @@ backups/
 *.db-wal
 
 # Runtime logs and process files
+runtime/
 logs/
 *.log
 *.pid

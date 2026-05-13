@@ -14,10 +14,44 @@ final artistic forecast.
 
 ## Tools
 
+- `calculate_profile_day_forecast`
 - `calculate_month_forecast`
 - `calculate_year_forecast`
 - `calculate_profile_month_forecast`
 - `calculate_profile_year_forecast`
+
+## Day Forecast
+
+`calculate_profile_day_forecast` builds one-day structured material for a stored profile.
+It calculates transits for the selected local date and time, compares them against the
+profile natal chart, groups the active transits by themes, and returns `llm_day_context`.
+
+Input:
+
+```json
+{
+  "profile_id": "uuid",
+  "date": "2026-06-01",
+  "time": "12:00:00",
+  "timezone": "Europe/London",
+  "settings": {
+    "house_system": "Placidus",
+    "zodiac_type": "tropical",
+    "include_minor_aspects": false,
+    "max_orb": 3,
+    "include_lunar_transits": true,
+    "include_outer_planet_transits": true
+  }
+}
+```
+
+Defaults:
+
+- `time`: `12:00:00`.
+- `timezone`: profile timezone, then `UTC`.
+
+The day forecast returns structured material only. The bot should use `llm_day_context`
+to write the final daily interpretation.
 
 ## Sampling
 

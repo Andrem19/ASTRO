@@ -27,7 +27,9 @@ PLANNED_TOOLS = [
     "calculate_year_forecast",
     "calculate_profile_month_forecast",
     "calculate_profile_year_forecast",
+    "calculate_profile_day_forecast",
     "generate_transit_chart_svg",
+    "send_telegram_message",
 ]
 
 

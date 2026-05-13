@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable, MutableMapping
 from http import HTTPStatus
 from typing import Any
@@ -10,6 +11,7 @@ from fastmcp import FastMCP
 
 from astrology_mcp.config import Settings, get_settings
 from astrology_mcp.logging import configure_logging
+from astrology_mcp.services.telegram_notifier import TelegramNotifier
 from astrology_mcp.tools.health_tools import health_check, list_supported_features, server_info
 from astrology_mcp.tools.natal_chart_tools import calculate_natal_chart
 from astrology_mcp.tools.profile_tools import (
@@ -27,8 +29,10 @@ from astrology_mcp.tools.synastry_tools import (
     calculate_synastry,
     generate_synastry_chart_svg,
 )
+from astrology_mcp.tools.telegram_tools import send_telegram_message
 from astrology_mcp.tools.transit_tools import (
     calculate_month_forecast,
+    calculate_profile_day_forecast,
     calculate_profile_month_forecast,
     calculate_profile_transits,
     calculate_profile_year_forecast,
@@ -124,6 +128,34 @@ class HealthRouteMiddleware:
             await send({"type": "http.response.body", "body": body})
             return
         await self._app(scope, receive, send)
+
+
+class StartupNotificationMiddleware:
+    """Send Telegram notifications for ASGI startup success or failure."""
+
+    def __init__(self, app: AsgiApp, settings: Settings) -> None:
+        self._app = app
+        self._notifier = TelegramNotifier(settings)
+
+    async def __call__(self, scope: AsgiScope, receive: Receive, send: Send) -> None:
+        if scope.get("type") != "lifespan":
+            await self._app(scope, receive, send)
+            return
+
+        async def notifying_send(message: AsgiMessage) -> None:
+            await send(message)
+            message_type = message.get("type")
+            if message_type == "lifespan.startup.complete":
+                asyncio.create_task(self._notifier.send_startup_success())
+            elif message_type == "lifespan.startup.failed":
+                detail = str(message.get("message") or "startup failed")
+                asyncio.create_task(self._notifier.send_startup_failure(detail))
+
+        try:
+            await self._app(scope, receive, notifying_send)
+        except Exception as exc:
+            asyncio.create_task(self._notifier.send_startup_failure(exc))
+            raise
 
 
 def create_mcp_server(settings: Settings | None = None) -> FastMCP:
@@ -314,6 +346,22 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     ) -> dict[str, object]:
         return calculate_profile_year_forecast(profile_id, year, settings)
 
+    @mcp.tool(name="calculate_profile_day_forecast")
+    def calculate_profile_day_forecast_tool(
+        profile_id: str,
+        date: str,
+        time: str | None = None,
+        timezone: str | None = None,
+        settings: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        return calculate_profile_day_forecast(
+            profile_id,
+            date,
+            time=time,
+            timezone=timezone,
+            settings=settings,
+        )
+
     @mcp.tool(name="generate_transit_chart_svg")
     def generate_transit_chart_svg_tool(
         natal: dict[str, object] | None = None,
@@ -328,6 +376,24 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
             settings=settings,
         )
 
+    @mcp.tool(name="send_telegram_message")
+    async def send_telegram_message_tool(
+        text: str | None = None,
+        file_path: str | None = None,
+        file_name: str | None = None,
+        text_content: str | None = None,
+        content_base64: str | None = None,
+        caption: str | None = None,
+    ) -> dict[str, object]:
+        return await send_telegram_message(
+            text=text,
+            file_path=file_path,
+            file_name=file_name,
+            text_content=text_content,
+            content_base64=content_base64,
+            caption=caption,
+        )
+
     return mcp
 
 
@@ -336,4 +402,6 @@ def create_app(settings: Settings | None = None) -> AsgiApp:
     configure_logging(settings)
     mcp = create_mcp_server(settings)
     app = mcp.http_app(path="/mcp/", transport="streamable-http")
-    return HealthRouteMiddleware(ApiKeyAuthMiddleware(app, settings), settings)
+    authorized_app = ApiKeyAuthMiddleware(app, settings)
+    health_app = HealthRouteMiddleware(authorized_app, settings)
+    return StartupNotificationMiddleware(health_app, settings)

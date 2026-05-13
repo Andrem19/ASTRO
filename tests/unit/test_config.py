@@ -13,6 +13,10 @@ def test_configuration_loads_defaults() -> None:
     assert settings.sqlite_enable_wal is True
     assert settings.sqlite_enable_foreign_keys is True
     assert settings.api_auth_enabled is False
+    assert settings.algo_bot is None
+    assert settings.chat_id is None
+    assert settings.telegram_outbox_dir == "./runtime/telegram_outbox"
+    assert settings.telegram_max_file_size_mb == 20
 
 
 def test_api_keys_parse_comma_separated_values() -> None:
