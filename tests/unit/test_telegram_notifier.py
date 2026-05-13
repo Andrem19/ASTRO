@@ -9,13 +9,7 @@ from astrology_mcp.config import Settings
 from astrology_mcp.mcp_server import StartupNotificationMiddleware
 from astrology_mcp.services.telegram_notifier import TelegramNotifier, TelegramToolError
 from astrology_mcp.tools import telegram_tools
-from astrology_mcp.tools.telegram_tools import (
-    send_telegram_image,
-    send_telegram_markdown,
-    send_telegram_pdf,
-    send_telegram_text,
-    telegram_outbox_info,
-)
+from astrology_mcp.tools.telegram_tools import send_telegram_text_as_pdf
 
 
 def test_telegram_notifier_disabled_without_env() -> None:
@@ -196,6 +190,79 @@ def test_telegram_create_base64_file_sends_and_deletes(monkeypatch: Any, tmp_pat
     assert not sent_paths[0].exists()
 
 
+def test_telegram_create_pdf_from_text_sends_and_deletes(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    outbox = tmp_path / "outbox"
+    notifier = TelegramNotifier(
+        Settings(
+            ALGO_BOT="token",
+            CHAT_ID="42",
+            TELEGRAM_OUTBOX_DIR=str(outbox),
+            PDF_FONT_PATH="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        )
+    )
+    sent_paths: list[Path] = []
+
+    async def fake_post_file(
+        method: str,
+        field_name: str,
+        path: Path,
+        caption: str | None,
+    ) -> dict[str, object]:
+        sent_paths.append(path)
+        assert method == "sendDocument"
+        assert field_name == "document"
+        assert caption == "PDF"
+        assert path.suffix == ".pdf"
+        assert path.read_bytes().startswith(b"%PDF")
+        assert path.stat().st_size > 500
+        return {"ok": True, "result": {"message_id": 11, "chat": {"id": 42}}}
+
+    monkeypatch.setattr(notifier, "_post_file", fake_post_file)
+
+    result = asyncio.run(
+        notifier.create_pdf_from_text_and_send(
+            "forecast",
+            content="Прогноз дня\nПолный текст прогноза.",
+            title="Дневной прогноз",
+            caption="PDF",
+        )
+    )
+
+    assert result["file_deleted"] is True
+    assert sent_paths
+    assert not sent_paths[0].exists()
+
+
+def test_telegram_create_pdf_from_text_empty_content(tmp_path: Path) -> None:
+    notifier = TelegramNotifier(
+        Settings(ALGO_BOT="token", CHAT_ID="42", TELEGRAM_OUTBOX_DIR=str(tmp_path))
+    )
+
+    with pytest.raises(TelegramToolError) as exc_info:
+        asyncio.run(notifier.create_pdf_from_text_and_send("forecast.pdf", content=" "))
+
+    assert exc_info.value.error_type == "invalid_request"
+
+
+def test_telegram_create_pdf_from_text_missing_font(tmp_path: Path) -> None:
+    notifier = TelegramNotifier(
+        Settings(
+            ALGO_BOT="token",
+            CHAT_ID="42",
+            TELEGRAM_OUTBOX_DIR=str(tmp_path),
+            PDF_FONT_PATH=str(tmp_path / "missing.ttf"),
+        )
+    )
+
+    with pytest.raises(TelegramToolError) as exc_info:
+        asyncio.run(notifier.create_pdf_from_text_and_send("forecast.pdf", content="Текст"))
+
+    assert exc_info.value.error_type == "pdf_font_not_found"
+
+
 def test_telegram_failed_send_keeps_created_file(monkeypatch: Any, tmp_path: Path) -> None:
     outbox = tmp_path / "outbox"
     notifier = TelegramNotifier(
@@ -219,38 +286,22 @@ def test_telegram_failed_send_keeps_created_file(monkeypatch: Any, tmp_path: Pat
     assert Path(exc_info.value.debug_file_path).exists()
 
 
-def test_send_telegram_text_wrapper(monkeypatch: Any) -> None:
-    calls: list[str] = []
-
-    class FakeService:
-        async def send_message(self, text: str) -> dict[str, object]:
-            calls.append(text)
-            return {"status": "sent", "sent_type": "message"}
-
-    monkeypatch.setattr(telegram_tools, "_service", FakeService)
-
-    result = asyncio.run(send_telegram_text("hello"))
-
-    assert result == {"status": "sent", "sent_type": "message"}
-    assert calls == ["hello"]
-
-
-def test_send_telegram_markdown_wrapper(monkeypatch: Any) -> None:
+def test_send_telegram_text_as_pdf_wrapper(monkeypatch: Any) -> None:
     calls: list[dict[str, object]] = []
 
     class FakeService:
-        async def create_temp_file_and_send(
+        async def create_pdf_from_text_and_send(
             self,
             file_name: str,
-            text_content: str | None = None,
-            content_base64: str | None = None,
+            content: str,
+            title: str | None = None,
             caption: str | None = None,
         ) -> dict[str, object]:
             calls.append(
                 {
                     "file_name": file_name,
-                    "text_content": text_content,
-                    "content_base64": content_base64,
+                    "content": content,
+                    "title": title,
                     "caption": caption,
                 }
             )
@@ -258,135 +309,41 @@ def test_send_telegram_markdown_wrapper(monkeypatch: Any) -> None:
 
     monkeypatch.setattr(telegram_tools, "_service", FakeService)
 
-    result = asyncio.run(send_telegram_markdown("forecast.md", "# Forecast", "Daily"))
+    result = asyncio.run(
+        send_telegram_text_as_pdf("forecast", "Полный текст", "Заголовок", "PDF")
+    )
 
     assert result["status"] == "sent"
     assert calls == [
         {
-            "file_name": "forecast.md",
-            "text_content": "# Forecast",
-            "content_base64": None,
-            "caption": "Daily",
-        }
-    ]
-
-
-def test_send_telegram_pdf_wrapper(monkeypatch: Any) -> None:
-    calls: list[dict[str, object]] = []
-
-    class FakeService:
-        async def create_temp_file_and_send(
-            self,
-            file_name: str,
-            text_content: str | None = None,
-            content_base64: str | None = None,
-            caption: str | None = None,
-        ) -> dict[str, object]:
-            calls.append(
-                {
-                    "file_name": file_name,
-                    "text_content": text_content,
-                    "content_base64": content_base64,
-                    "caption": caption,
-                }
-            )
-            return {"status": "sent", "sent_type": "document", "file_deleted": True}
-
-    monkeypatch.setattr(telegram_tools, "_service", FakeService)
-
-    result = asyncio.run(send_telegram_pdf("forecast.pdf", "JVBERi0=", "PDF"))
-
-    assert result["status"] == "sent"
-    assert calls == [
-        {
-            "file_name": "forecast.pdf",
-            "text_content": None,
-            "content_base64": "JVBERi0=",
+            "file_name": "forecast",
+            "content": "Полный текст",
+            "title": "Заголовок",
             "caption": "PDF",
         }
     ]
 
 
-def test_send_telegram_image_wrapper(monkeypatch: Any) -> None:
-    calls: list[dict[str, object]] = []
-
+def test_send_telegram_text_as_pdf_returns_structured_errors(monkeypatch: Any) -> None:
     class FakeService:
-        async def create_temp_file_and_send(
+        async def create_pdf_from_text_and_send(
             self,
             file_name: str,
-            text_content: str | None = None,
-            content_base64: str | None = None,
+            content: str,
+            title: str | None = None,
             caption: str | None = None,
         ) -> dict[str, object]:
-            calls.append(
-                {
-                    "file_name": file_name,
-                    "text_content": text_content,
-                    "content_base64": content_base64,
-                    "caption": caption,
-                }
-            )
-            return {"status": "sent", "sent_type": "photo", "file_deleted": True}
+            raise TelegramToolError("invalid_request", "content must not be empty")
 
     monkeypatch.setattr(telegram_tools, "_service", FakeService)
 
-    result = asyncio.run(send_telegram_image("chart.png", "iVBORw0=", "Chart"))
-
-    assert result["status"] == "sent"
-    assert calls == [
-        {
-            "file_name": "chart.png",
-            "text_content": None,
-            "content_base64": "iVBORw0=",
-            "caption": "Chart",
-        }
-    ]
-
-
-def test_simple_telegram_wrappers_return_structured_errors(monkeypatch: Any) -> None:
-    class FakeService:
-        async def create_temp_file_and_send(
-            self,
-            file_name: str,
-            text_content: str | None = None,
-            content_base64: str | None = None,
-            caption: str | None = None,
-        ) -> dict[str, object]:
-            raise TelegramToolError("invalid_base64", "content_base64 is invalid")
-
-    monkeypatch.setattr(telegram_tools, "_service", FakeService)
-
-    result = asyncio.run(send_telegram_pdf("forecast.pdf", "bad"))
+    result = asyncio.run(send_telegram_text_as_pdf("forecast.pdf", " "))
 
     assert result == {
         "status": "error",
-        "error_type": "invalid_base64",
-        "message": "content_base64 is invalid",
+        "error_type": "invalid_request",
+        "message": "content must not be empty",
         "warnings": [],
-    }
-
-
-def test_send_telegram_text_reports_not_configured() -> None:
-    result = asyncio.run(send_telegram_text("hello"))
-
-    assert result["status"] == "error"
-    assert result["error_type"] == "telegram_not_configured"
-
-
-def test_telegram_outbox_info(monkeypatch: Any) -> None:
-    monkeypatch.setattr(
-        telegram_tools,
-        "get_settings",
-        lambda: Settings(TELEGRAM_OUTBOX_DIR="/tmp/outbox", TELEGRAM_MAX_FILE_SIZE_MB=7),
-    )
-
-    result = telegram_outbox_info()
-
-    assert result == {
-        "status": "ok",
-        "outbox_dir": "/tmp/outbox",
-        "allowed_extensions": [".pdf", ".md", ".png", ".jpg", ".jpeg", ".webp"],
-        "max_file_size_mb": 7,
     }
 
 

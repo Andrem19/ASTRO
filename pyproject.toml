@@ -22,6 +22,7 @@ dependencies = [
   "tzdata",
   "httpx",
   "uvicorn",
+  "fpdf2",
 ]
 
 [tool.setuptools.packages.find]
@@ -47,5 +48,5 @@ warn_redundant_casts = true
 disallow_any_generics = false
 
 [[tool.mypy.overrides]]
-module = ["fastmcp.*", "kerykeion.*", "swisseph.*", "timezonefinder.*", "geopy.*"]
+module = ["fastmcp.*", "kerykeion.*", "swisseph.*", "timezonefinder.*", "geopy.*", "fpdf.*"]
 ignore_missing_imports = true

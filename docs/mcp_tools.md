@@ -45,11 +45,7 @@ Returns planned MCP tools:
 - `calculate_profile_year_forecast`
 - `calculate_profile_day_forecast`
 - `generate_transit_chart_svg`
-- `send_telegram_text`
-- `send_telegram_markdown`
-- `send_telegram_pdf`
-- `send_telegram_image`
-- `telegram_outbox_info`
+- `send_telegram_text_as_pdf`
 
 ## `calculate_natal_chart`
 
@@ -166,61 +162,22 @@ Returns:
 
 ## Telegram Tools
 
-Use the simple Telegram tools first. They send only to the Telegram `CHAT_ID` configured
-in `.env` and do not require the agent to know `TELEGRAM_OUTBOX_DIR`.
+Only one Telegram MCP tool is exposed to agents. This keeps the tool choice explicit:
+the agent sends full text, and the MCP server creates the PDF locally before sending it.
 
-### `send_telegram_text`
+### `send_telegram_text_as_pdf`
 
-```json
-{
-  "text": "Daily forecast is ready"
-}
-```
-
-### `send_telegram_markdown`
-
-```json
-{
-  "file_name": "forecast.md",
-  "markdown": "# Forecast\n...",
-  "caption": "Daily forecast"
-}
-```
-
-Creates a temporary `.md` file, sends it as a document, and deletes it after success.
-
-### `send_telegram_pdf`
+Preferred tool for forecast PDFs. The agent sends full text, and the MCP server creates
+the PDF inside `TELEGRAM_OUTBOX_DIR`, sends it, and deletes it after success.
 
 ```json
 {
   "file_name": "forecast.pdf",
-  "pdf_base64": "JVBERi0x...",
-  "caption": "Daily forecast PDF"
+  "title": "Дневной прогноз",
+  "content": "Полный текст прогноза...",
+  "caption": "Дневной прогноз PDF"
 }
 ```
-
-Creates a temporary PDF from base64, sends it as a document, and deletes it after success.
-
-### `send_telegram_image`
-
-```json
-{
-  "file_name": "chart.png",
-  "image_base64": "iVBORw0KGgo...",
-  "caption": "Chart"
-}
-```
-
-Supported image extensions: `.png`, `.jpg`, `.jpeg`, `.webp`.
-
-### `telegram_outbox_info`
-
-```json
-{}
-```
-
-Returns the protected outbox path, supported extensions, and file size limit for advanced
-existing-file sends.
 
 Response:
 
@@ -229,8 +186,8 @@ Response:
   "status": "sent",
   "message_id": 123,
   "chat_id": "42",
-  "sent_type": "message",
-  "file_deleted": false,
+  "sent_type": "document",
+  "file_deleted": true,
   "warnings": []
 }
 ```

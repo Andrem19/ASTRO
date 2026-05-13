@@ -42,6 +42,10 @@ class Settings(BaseSettings):
         alias="TELEGRAM_OUTBOX_DIR",
     )
     telegram_max_file_size_mb: int = Field(default=20, alias="TELEGRAM_MAX_FILE_SIZE_MB")
+    pdf_font_path: str = Field(
+        default="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        alias="PDF_FONT_PATH",
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

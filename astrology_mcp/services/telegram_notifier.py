@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import cast
 
 import httpx
+from fpdf import FPDF
 
 from astrology_mcp.config import Settings
 
@@ -73,6 +74,28 @@ class TelegramNotifier:
         except Exception as exc:
             if isinstance(exc, TelegramToolError):
                 exc.debug_file_path = str(path)
+            raise
+        path.unlink(missing_ok=True)
+        return {**result, "file_deleted": True}
+
+    async def create_pdf_from_text_and_send(
+        self,
+        file_name: str,
+        content: str,
+        title: str | None = None,
+        caption: str | None = None,
+    ) -> dict[str, object]:
+        if not content.strip():
+            raise TelegramToolError("invalid_request", "content must not be empty")
+        pdf_name = file_name if file_name.lower().endswith(".pdf") else f"{file_name}.pdf"
+        path = self._new_outbox_path(pdf_name)
+        try:
+            self._write_text_pdf(path, content=content, title=title)
+            self._validate_file_metadata(path)
+            result = await self.send_file(str(path), caption=caption)
+        except Exception as exc:
+            if isinstance(exc, TelegramToolError):
+                exc.debug_file_path = str(path) if path.exists() else None
             raise
         path.unlink(missing_ok=True)
         return {**result, "file_deleted": True}
@@ -201,11 +224,7 @@ class TelegramNotifier:
                 "invalid_request",
                 "Provide exactly one of text_content or content_base64",
             )
-        outbox = self._ensure_outbox_dir()
-        safe_name = f"{uuid.uuid4().hex}_{Path(file_name).name}"
-        path = (outbox / safe_name).resolve()
-        if not path.is_relative_to(outbox):
-            raise TelegramToolError("invalid_file_path", "file_name must stay inside outbox")
+        path = self._new_outbox_path(file_name)
         self._validate_file_extension(path)
         if text_content is not None:
             path.write_text(text_content, encoding="utf-8")
@@ -216,6 +235,45 @@ class TelegramNotifier:
                 raise TelegramToolError("invalid_base64", "content_base64 is invalid") from exc
         self._validate_file_metadata(path)
         return path
+
+    def _new_outbox_path(self, file_name: str) -> Path:
+        outbox = self._ensure_outbox_dir()
+        safe_name = f"{uuid.uuid4().hex}_{Path(file_name).name}"
+        path = (outbox / safe_name).resolve()
+        if not path.is_relative_to(outbox):
+            raise TelegramToolError("invalid_file_path", "file_name must stay inside outbox")
+        return path
+
+    def _write_text_pdf(self, path: Path, content: str, title: str | None) -> None:
+        font_path = Path(self._settings.pdf_font_path)
+        if not font_path.exists() or not font_path.is_file():
+            raise TelegramToolError(
+                "pdf_font_not_found",
+                "PDF font with Cyrillic support is not available",
+            )
+        try:
+            pdf = FPDF(format="A4")
+            pdf.set_auto_page_break(auto=True, margin=15)
+            pdf.add_page()
+            pdf.add_font("DejaVu", "", str(font_path))
+            pdf.set_font("DejaVu", size=16)
+            if title:
+                pdf.multi_cell(pdf.epw, 9, text=title, new_x="LMARGIN", new_y="NEXT")
+                pdf.ln(4)
+            pdf.set_font("DejaVu", size=11)
+            for line in content.splitlines() or [content]:
+                pdf.multi_cell(
+                    pdf.epw,
+                    6,
+                    text=line if line else " ",
+                    new_x="LMARGIN",
+                    new_y="NEXT",
+                )
+            pdf.output(str(path))
+        except TelegramToolError:
+            raise
+        except Exception as exc:
+            raise TelegramToolError("pdf_generation_error", str(exc)) from exc
 
     def _ensure_outbox_dir(self) -> Path:
         outbox = Path(self._settings.telegram_outbox_dir)

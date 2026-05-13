@@ -73,13 +73,13 @@ ALGO_BOT=
 CHAT_ID=
 TELEGRAM_OUTBOX_DIR=./runtime/telegram_outbox
 TELEGRAM_MAX_FILE_SIZE_MB=20
+PDF_FONT_PATH=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
 ```
 
 If both values are set in `.env`, the service sends `astro-mcp перезапущен успешно`
 after ASGI startup completes and tries to send `astro-mcp неуспешный запуск: <error>`
-if startup fails. The same bot token and chat id are used by Telegram MCP tools such as
-`send_telegram_text`, `send_telegram_pdf`, and `send_telegram_markdown`. Leave either
-value empty to disable Telegram sending.
+if startup fails. The same bot token and chat id are used by the `send_telegram_text_as_pdf`
+MCP tool. Leave either value empty to disable Telegram sending.
 
 Do not log full birth dates with times, full profile notes, API keys, or complete raw birth
 data payloads. Application tool logs include request id, tool name, duration, status, and

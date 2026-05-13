@@ -30,13 +30,7 @@ from astrology_mcp.tools.synastry_tools import (
     calculate_synastry,
     generate_synastry_chart_svg,
 )
-from astrology_mcp.tools.telegram_tools import (
-    send_telegram_image,
-    send_telegram_markdown,
-    send_telegram_pdf,
-    send_telegram_text,
-    telegram_outbox_info,
-)
+from astrology_mcp.tools.telegram_tools import send_telegram_text_as_pdf
 from astrology_mcp.tools.transit_tools import (
     calculate_month_forecast,
     calculate_profile_day_forecast,
@@ -397,51 +391,21 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
             settings=settings,
         )
 
-    @mcp.tool(name="send_telegram_text")
-    async def send_telegram_text_tool(text: str) -> dict[str, object]:
-        """Send a plain Telegram text message to CHAT_ID from .env."""
-
-        return await send_telegram_text(text)
-
-    @mcp.tool(name="send_telegram_markdown")
-    async def send_telegram_markdown_tool(
+    @mcp.tool(name="send_telegram_text_as_pdf")
+    async def send_telegram_text_as_pdf_tool(
         file_name: str,
-        markdown: str,
+        content: str,
+        title: str | None = None,
         caption: str | None = None,
     ) -> dict[str, object]:
-        """Create a temporary .md file, send it to Telegram, then delete it."""
+        """Create a PDF from text on the server, send it to Telegram, then delete it."""
 
-        return await send_telegram_markdown(file_name=file_name, markdown=markdown, caption=caption)
-
-    @mcp.tool(name="send_telegram_pdf")
-    async def send_telegram_pdf_tool(
-        file_name: str,
-        pdf_base64: str,
-        caption: str | None = None,
-    ) -> dict[str, object]:
-        """Create a temporary PDF from base64, send it to Telegram, then delete it."""
-
-        return await send_telegram_pdf(file_name=file_name, pdf_base64=pdf_base64, caption=caption)
-
-    @mcp.tool(name="send_telegram_image")
-    async def send_telegram_image_tool(
-        file_name: str,
-        image_base64: str,
-        caption: str | None = None,
-    ) -> dict[str, object]:
-        """Create a temporary image from base64, send it as Telegram photo, then delete it."""
-
-        return await send_telegram_image(
+        return await send_telegram_text_as_pdf(
             file_name=file_name,
-            image_base64=image_base64,
+            content=content,
+            title=title,
             caption=caption,
         )
-
-    @mcp.tool(name="telegram_outbox_info")
-    def telegram_outbox_info_tool() -> dict[str, object]:
-        """Return outbox settings for advanced existing-file Telegram sends."""
-
-        return telegram_outbox_info()
 
     return mcp
 

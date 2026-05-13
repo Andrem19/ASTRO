@@ -20,6 +20,7 @@ Core variables:
 - `CHAT_ID`
 - `TELEGRAM_OUTBOX_DIR`
 - `TELEGRAM_MAX_FILE_SIZE_MB`
+- `PDF_FONT_PATH`
 
 SQLite-only variables:
 
@@ -59,3 +60,4 @@ Telegram startup notifications:
 - If startup fails, the server tries to send `astro-mcp неуспешный запуск: <error>`.
 - `TELEGRAM_OUTBOX_DIR`: protected directory for files that can be sent through the Telegram MCP tool.
 - `TELEGRAM_MAX_FILE_SIZE_MB`: maximum allowed file size for Telegram file sends.
+- `PDF_FONT_PATH`: TrueType font used for server-side PDF generation. The default is `/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf`.

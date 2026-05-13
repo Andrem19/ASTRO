@@ -28,6 +28,7 @@ dependencies:
 
       - httpx
       - uvicorn
+      - fpdf2
 
       - pytest
       - pytest-cov

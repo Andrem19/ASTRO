@@ -17,6 +17,7 @@ def test_configuration_loads_defaults() -> None:
     assert settings.chat_id is None
     assert settings.telegram_outbox_dir == "./runtime/telegram_outbox"
     assert settings.telegram_max_file_size_mb == 20
+    assert settings.pdf_font_path == "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 
 def test_api_keys_parse_comma_separated_values() -> None:
