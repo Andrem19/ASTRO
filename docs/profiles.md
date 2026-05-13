@@ -28,6 +28,7 @@ profile and settings hash.
 
 - `create_profile`
 - `get_profile`
+- `get_profile_by_name`
 - `list_profiles`
 - `update_profile`
 - `delete_profile`
@@ -78,6 +79,28 @@ Response:
 `calculate_profile_natal_chart` loads the profile, hashes the settings, checks
 `chart_cache`, and returns a cached chart when `use_cache=true` and the settings hash
 exists. Otherwise it calculates a new chart and stores it.
+
+## Lookup By Name
+
+Use `get_profile_by_name` when a bot knows the person's name but not `profile_id`.
+The lookup is exact and case-insensitive.
+
+Example:
+
+```json
+{
+  "name": "Person A",
+  "include_private_notes": false
+}
+```
+
+Responses:
+
+- `status="found"` with `profile` when one active profile matches.
+- `status="ambiguous"` with `profiles` when multiple active profiles share the name.
+- `status="not_found"` when no active profile matches.
+
+Private notes are omitted unless `include_private_notes=true`.
 
 ## Delete Profile
 

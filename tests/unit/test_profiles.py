@@ -66,6 +66,61 @@ def test_get_profile_with_private_notes(profile_service: ProfileService) -> None
     assert profile.tags == ["client", "vip"]
 
 
+def test_get_profile_by_name(profile_service: ProfileService) -> None:
+    profile_id = _create_profile(profile_service)
+
+    result = profile_service.get_profile_by_name("Person A")
+
+    assert result["status"] == "found"
+    assert result["profile"]["id"] == profile_id  # type: ignore[index]
+    assert result["profile"]["notes"] is None  # type: ignore[index]
+
+
+def test_get_profile_by_name_case_insensitive(profile_service: ProfileService) -> None:
+    profile_id = _create_profile(profile_service)
+
+    result = profile_service.get_profile_by_name("person a")
+
+    assert result["status"] == "found"
+    assert result["profile"]["id"] == profile_id  # type: ignore[index]
+
+
+def test_get_profile_by_name_can_include_private_notes(profile_service: ProfileService) -> None:
+    _create_profile(profile_service)
+
+    result = profile_service.get_profile_by_name("Person A", include_private_notes=True)
+
+    assert result["profile"]["notes"] == "Optional private notes"  # type: ignore[index]
+
+
+def test_get_profile_by_name_returns_not_found(profile_service: ProfileService) -> None:
+    result = profile_service.get_profile_by_name("Missing")
+
+    assert result == {"status": "not_found", "name": "Missing", "profiles": []}
+
+
+def test_get_profile_by_name_returns_ambiguous_matches(profile_service: ProfileService) -> None:
+    first = _create_profile(profile_service)
+    second = profile_service.create_profile(_profile_payload(external_id="client_456"))
+
+    result = profile_service.get_profile_by_name("Person A")
+
+    assert result["status"] == "ambiguous"
+    assert {profile["id"] for profile in result["profiles"]} == {  # type: ignore[index]
+        first,
+        second["profile_id"],
+    }
+
+
+def test_get_profile_by_name_hides_deleted(profile_service: ProfileService) -> None:
+    profile_id = _create_profile(profile_service)
+    profile_service.delete_profile(profile_id)
+
+    result = profile_service.get_profile_by_name("Person A")
+
+    assert result["status"] == "not_found"
+
+
 def test_list_profiles_omits_notes(profile_service: ProfileService) -> None:
     _create_profile(profile_service)
 

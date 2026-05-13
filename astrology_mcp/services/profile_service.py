@@ -61,6 +61,38 @@ class ProfileService:
                 raise ValueError(f"Profile not found: {profile_id}")
             return self._profile_response(profile, include_private_notes=include_private_notes)
 
+    def get_profile_by_name(
+        self,
+        name: str,
+        include_private_notes: bool = False,
+        include_deleted: bool = False,
+        limit: int = 10,
+    ) -> dict[str, object]:
+        if not name.strip():
+            return {"status": "error", "error_type": "invalid_name", "message": "name is required"}
+        with self._session_factory() as session:
+            profiles = ProfileRepository(session).find_by_name(
+                name,
+                include_deleted=include_deleted,
+                limit=limit,
+            )
+            responses = [
+                self._profile_response(profile, include_private_notes=include_private_notes)
+                for profile in profiles
+            ]
+            if not responses:
+                return {"status": "not_found", "name": name, "profiles": []}
+            if len(responses) == 1:
+                return {"status": "found", "profile": responses[0].model_dump()}
+            return {
+                "status": "ambiguous",
+                "name": name,
+                "profiles": [
+                    profile.model_dump(exclude={"notes"} if not include_private_notes else set())
+                    for profile in responses
+                ],
+            }
+
     def get_birth_data(
         self,
         profile_id: str,

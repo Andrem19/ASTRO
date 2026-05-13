@@ -20,6 +20,7 @@ from astrology_mcp.tools.profile_tools import (
     create_profile,
     delete_profile,
     get_profile,
+    get_profile_by_name,
     list_profiles,
     update_profile,
 )
@@ -229,6 +230,20 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
         include_deleted: bool = False,
     ) -> dict[str, object]:
         return get_profile(profile_id, include_private_notes, include_deleted)
+
+    @mcp.tool(name="get_profile_by_name")
+    def get_profile_by_name_tool(
+        name: str,
+        include_private_notes: bool = False,
+        include_deleted: bool = False,
+        limit: int = 10,
+    ) -> dict[str, object]:
+        return get_profile_by_name(
+            name,
+            include_private_notes=include_private_notes,
+            include_deleted=include_deleted,
+            limit=limit,
+        )
 
     @mcp.tool(name="list_profiles")
     def list_profiles_tool(include_deleted: bool = False, limit: int = 100) -> dict[str, object]:

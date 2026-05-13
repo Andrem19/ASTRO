@@ -82,6 +82,20 @@ jobs:
              sudo -n systemctl is-active --quiet '$SERVICE_NAME'
             "
 
+      - name: Verify MCP tool registry
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
+
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "$DEPLOY_USER@${{ secrets.DEPLOY_HOST }}" \
+            "set -euo pipefail
+             cd '$DEPLOY_PATH'
+             '$CONDA_BIN' run -n astro python -c \"import asyncio; from astrology_mcp.mcp_server import create_mcp_server; tools=asyncio.run(create_mcp_server().list_tools()); names={tool.name for tool in tools}; print(sorted(names)); assert 'send_telegram_message' in names; assert 'calculate_profile_day_forecast' in names; assert 'get_profile_by_name' in names\"
+            "
+
       - name: Show deployed commit
         shell: bash
         run: |

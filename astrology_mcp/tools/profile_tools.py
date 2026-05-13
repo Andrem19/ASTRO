@@ -53,6 +53,21 @@ def get_profile(
     ).model_dump()
 
 
+@log_tool_call("get_profile_by_name")
+def get_profile_by_name(
+    name: str,
+    include_private_notes: bool = False,
+    include_deleted: bool = False,
+    limit: int = 10,
+) -> dict[str, object]:
+    return _service().get_profile_by_name(
+        name,
+        include_private_notes=include_private_notes,
+        include_deleted=include_deleted,
+        limit=limit,
+    )
+
+
 @log_tool_call("list_profiles")
 def list_profiles(include_deleted: bool = False, limit: int = 100) -> dict[str, object]:
     profiles = _service().list_profiles(include_deleted=include_deleted, limit=limit)

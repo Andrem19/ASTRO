@@ -12,6 +12,7 @@ PLANNED_TOOLS = [
     "calculate_natal_chart",
     "create_profile",
     "get_profile",
+    "get_profile_by_name",
     "list_profiles",
     "update_profile",
     "delete_profile",

@@ -55,6 +55,17 @@ Health check:
 curl http://127.0.0.1:8000/health
 ```
 
+Tool registry check:
+
+```bash
+cd /opt/astrology-mcp-server
+conda run -n astro python -c "import asyncio; from astrology_mcp.mcp_server import create_mcp_server; tools=asyncio.run(create_mcp_server().list_tools()); print('\n'.join(tool.name for tool in tools))"
+```
+
+If a tool appears in `list_supported_features` but is missing from the connected MCP
+client, restart the service and refresh/reconnect that client. Some clients cache the
+tool schema separately from normal tool responses.
+
 Telegram startup notifications:
 
 ```text

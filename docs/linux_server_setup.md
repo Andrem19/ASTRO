@@ -98,6 +98,17 @@ conda run -n astro ruff check .
 conda run -n astro mypy astrology_mcp
 ```
 
+Verify the FastMCP tool registry after deploy or restart:
+
+```bash
+conda run -n astro python -c "import asyncio; from astrology_mcp.mcp_server import create_mcp_server; tools=asyncio.run(create_mcp_server().list_tools()); print('\n'.join(tool.name for tool in tools))"
+```
+
+`send_telegram_message` and `calculate_profile_day_forecast` must appear in this list.
+If `list_supported_features` shows a tool but the external MCP client does not expose it,
+restart the Linux service and refresh/reconnect the MCP client so it reloads the tool
+schema from `/mcp/`.
+
 ## Service Mode
 
 Use `systemd` for normal server operation. See `docs/systemd.md`.

@@ -27,6 +27,7 @@ Returns planned MCP tools:
 - `calculate_natal_chart`
 - `create_profile`
 - `get_profile`
+- `get_profile_by_name`
 - `list_profiles`
 - `update_profile`
 - `delete_profile`
@@ -87,6 +88,7 @@ Profiles store reusable birth data.
 
 - `create_profile`: create a soft-deletable profile.
 - `get_profile`: return one profile; private notes are included only when requested.
+- `get_profile_by_name`: return a profile by exact case-insensitive name, or candidates if ambiguous.
 - `list_profiles`: return profile summaries without private notes by default.
 - `update_profile`: update profile fields.
 - `delete_profile`: soft delete a profile.

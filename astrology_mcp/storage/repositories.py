@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, cast
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from astrology_mcp.domain.models import ProfileCreate, ProfileUpdate
@@ -42,6 +42,24 @@ class ProfileRepository:
         if not include_deleted:
             statement = statement.where(ProfileModel.deleted_at.is_(None))
         return self._session.scalar(statement)
+
+    def find_by_name(
+        self,
+        name: str,
+        include_deleted: bool = False,
+        limit: int = 10,
+    ) -> list[ProfileModel]:
+        normalized_name = name.strip().lower()
+        statement = (
+            select(ProfileModel)
+            .options(selectinload(ProfileModel.tags))
+            .where(func.lower(ProfileModel.name) == normalized_name)
+            .order_by(ProfileModel.created_at.desc())
+            .limit(limit)
+        )
+        if not include_deleted:
+            statement = statement.where(ProfileModel.deleted_at.is_(None))
+        return list(self._session.scalars(statement))
 
     def list_profiles(
         self,
