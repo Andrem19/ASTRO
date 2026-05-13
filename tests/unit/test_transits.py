@@ -213,16 +213,36 @@ def test_day_forecast_classifies_supportive_and_challenging_transits() -> None:
 
 def test_profile_day_forecast_registered_as_mcp_tool() -> None:
     tools = asyncio.run(create_mcp_server(Settings()).list_tools())
+    tool_names = {tool.name for tool in tools}
 
-    assert "calculate_profile_day_forecast" in {tool.name for tool in tools}
-    assert "get_profile_by_name" in {tool.name for tool in tools}
-    assert "send_telegram_text_as_pdf" in {tool.name for tool in tools}
-    assert "send_telegram_message" not in {tool.name for tool in tools}
-    assert "send_telegram_text" not in {tool.name for tool in tools}
-    assert "send_telegram_markdown" not in {tool.name for tool in tools}
-    assert "send_telegram_pdf" not in {tool.name for tool in tools}
-    assert "send_telegram_image" not in {tool.name for tool in tools}
-    assert "telegram_outbox_info" not in {tool.name for tool in tools}
+    assert "calculate_profile_day_forecast" in tool_names
+    assert "get_profile_by_name" in tool_names
+    assert "send_telegram_text_as_pdf" in tool_names
+    assert "astro1_calculate_profile_day_forecast" in tool_names
+    assert "astro1_get_profile_by_name" in tool_names
+    assert "astro1_calculate_profile_natal_chart" in tool_names
+    assert "astro1_send_telegram_text_as_pdf" in tool_names
+    assert "send_telegram_message" not in tool_names
+    assert "send_telegram_text" not in tool_names
+    assert "send_telegram_markdown" not in tool_names
+    assert "send_telegram_pdf" not in tool_names
+    assert "send_telegram_image" not in tool_names
+    assert "telegram_outbox_info" not in tool_names
+    assert "astro1_send_telegram_message" not in tool_names
+    assert "astro1_send_telegram_text" not in tool_names
+    assert "astro1_send_telegram_markdown" not in tool_names
+    assert "astro1_send_telegram_pdf" not in tool_names
+    assert "astro1_send_telegram_image" not in tool_names
+    assert "astro1_telegram_outbox_info" not in tool_names
+
+
+def test_astro1_aliases_are_registered_for_all_mcp_tools() -> None:
+    tools = asyncio.run(create_mcp_server(Settings()).list_tools())
+    tool_names = {tool.name for tool in tools}
+    base_names = {name for name in tool_names if not name.startswith("astro1_")}
+
+    assert len(tool_names) == len(base_names) * 2
+    assert {f"astro1_{name}" for name in base_names} <= tool_names
 
 
 def test_month_date_range(transit_service: TransitService) -> None:

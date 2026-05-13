@@ -47,6 +47,10 @@ Returns planned MCP tools:
 - `generate_transit_chart_svg`
 - `send_telegram_text_as_pdf`
 
+The server also registers `astro1_*` compatibility aliases for the Codex Apps connector.
+For example, `astro1_get_profile_by_name`, `astro1_calculate_profile_natal_chart`, and
+`astro1_send_telegram_text_as_pdf` call the same implementations as the base tools.
+
 ## `calculate_natal_chart`
 
 Calculates a full natal chart from local birth date, birth time, and birth location.
@@ -169,6 +173,8 @@ the agent sends full text, and the MCP server creates the PDF locally before sen
 
 Preferred tool for forecast PDFs. The agent sends full text, and the MCP server creates
 the PDF inside `TELEGRAM_OUTBOX_DIR`, sends it, and deletes it after success.
+When the tool is accessed through the Codex Apps `astro1` connector, use
+`astro1_send_telegram_text_as_pdf`.
 
 ```json
 {

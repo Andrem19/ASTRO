@@ -104,9 +104,11 @@ Verify the FastMCP tool registry after deploy or restart:
 conda run -n astro python -c "import asyncio; from astrology_mcp.mcp_server import create_mcp_server; tools=asyncio.run(create_mcp_server().list_tools()); print('\n'.join(tool.name for tool in tools))"
 ```
 
-`send_telegram_text_as_pdf` and `calculate_profile_day_forecast` must appear in this list.
+`send_telegram_text_as_pdf`, `astro1_send_telegram_text_as_pdf`,
+`astro1_get_profile_by_name`, and `astro1_calculate_profile_natal_chart` must appear in
+this list. The `astro1_*` names are compatibility aliases for the Codex Apps connector.
 Legacy Telegram tools such as `send_telegram_pdf`, `send_telegram_markdown`, and
-`send_telegram_text` must not appear.
+`send_telegram_text` must not appear, including their `astro1_*` variants.
 If `list_supported_features` shows a tool but the external MCP client does not expose it,
 restart the Linux service and refresh/reconnect the MCP client so it reloads the tool
 schema from `/mcp/`.
