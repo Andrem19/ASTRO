@@ -1,0 +1,41 @@
+name: astro
+
+variables:
+  PYTHONNOUSERSITE: "1"
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12
+  - pip
+
+  - pip:
+      - fastmcp
+      - kerykeion
+      - pyswisseph
+
+      - pydantic
+      - pydantic-settings
+      - python-dotenv
+
+      - sqlalchemy
+      - alembic
+
+      - timezonefinder
+      - geopy
+      - tzdata
+
+      - httpx
+      - uvicorn
+
+      - pytest
+      - pytest-cov
+      - pytest-asyncio
+      - freezegun
+
+      - ruff
+      - mypy
+      - pre-commit
+
+      - types-python-dateutil

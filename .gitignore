@@ -1,0 +1,93 @@
+# Python bytecode and interpreter caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Native extensions and compiled artifacts
+*.so
+*.dylib
+*.dll
+
+# Packaging and build outputs
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+wheelhouse/
+
+# Editable install metadata for this package
+astrology_mcp_server.egg-info/
+
+# Test, lint, type-check, and coverage caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+junit.xml
+test-results/
+
+# Virtual environments and local Python environments
+.venv/
+venv/
+env/
+ENV/
+.envrc
+.python-version
+
+# Conda local state and exported explicit specs
+.conda/
+conda-meta/
+*.conda
+*.tar.bz2
+explicit-spec-file.txt
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# SQLite runtime databases and maintenance files
+data/
+backups/
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3-shm
+*.sqlite3-wal
+*.db-shm
+*.db-wal
+
+# Runtime logs and process files
+logs/
+*.log
+*.pid
+*.sock
+
+# Local editor and IDE metadata
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+.cache/

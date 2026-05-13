@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astrology-mcp-server"
+version = "0.1.0"
+description = "FastMCP HTTP server for astrology tools."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastmcp",
+  "kerykeion",
+  "pyswisseph",
+  "pydantic",
+  "pydantic-settings",
+  "python-dotenv",
+  "sqlalchemy",
+  "alembic",
+  "timezonefinder",
+  "geopy",
+  "tzdata",
+  "httpx",
+  "uvicorn",
+]
+
+[tool.setuptools.packages.find]
+include = ["astrology_mcp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+disallow_any_generics = false
+
+[[tool.mypy.overrides]]
+module = ["fastmcp.*", "kerykeion.*", "swisseph.*", "timezonefinder.*", "geopy.*"]
+ignore_missing_imports = true
