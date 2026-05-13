@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     default_zodiac_type: str = Field(default="tropical", alias="DEFAULT_ZODIAC_TYPE")
     default_language: str = Field(default="en", alias="DEFAULT_LANGUAGE")
     api_auth_enabled: bool = Field(default=False, alias="API_AUTH_ENABLED")
-    api_keys: tuple[str, ...] = Field(default=(), alias="API_KEYS")
+    api_keys: Annotated[tuple[str, ...], NoDecode] = Field(default=(), alias="API_KEYS")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
     model_config = SettingsConfigDict(
