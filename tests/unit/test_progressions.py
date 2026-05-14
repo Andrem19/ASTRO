@@ -191,9 +191,6 @@ def test_progression_tools_are_registered_as_mcp_tools() -> None:
         "calculate_profile_life_progressions",
         "calculate_life_period_overview",
         "calculate_profile_life_period_overview",
-        "astro1_calculate_life_progressions",
-        "astro1_calculate_profile_life_progressions",
-        "astro1_calculate_life_period_overview",
-        "astro1_calculate_profile_life_period_overview",
     }
     assert expected <= names
+    assert all(not name.startswith("astro1_") for name in names)

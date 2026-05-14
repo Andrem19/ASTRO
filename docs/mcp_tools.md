@@ -51,9 +51,8 @@ Returns planned MCP tools:
 - `calculate_profile_life_period_overview`
 - `send_telegram_text_as_pdf`
 
-The server also registers `astro1_*` compatibility aliases for the Codex Apps connector.
-For example, `astro1_get_profile_by_name`, `astro1_calculate_profile_natal_chart`, and
-`astro1_send_telegram_text_as_pdf` call the same implementations as the base tools.
+The server intentionally exposes only base tool names. MCP clients already namespace
+tools by server name, so `astro1_*` aliases are not registered.
 
 ## `calculate_natal_chart`
 
@@ -142,7 +141,7 @@ structured periods and LLM context; the agent writes the final interpretation.
 - `calculate_life_period_overview`: alias for raw natal life overview.
 - `calculate_profile_life_period_overview`: alias for profile life overview.
 
-Use `astro1_calculate_profile_life_period_overview` through the Codex Apps connector.
+Use `calculate_profile_life_period_overview` through the Codex Apps connector.
 See `docs/progressions_directions.md`.
 
 ### `calculate_profile_day_forecast`
@@ -191,7 +190,7 @@ the agent sends full text, and the MCP server creates the PDF locally before sen
 Preferred tool for forecast PDFs. The agent sends full text, and the MCP server creates
 the PDF inside `TELEGRAM_OUTBOX_DIR`, sends it, and deletes it after success.
 When the tool is accessed through the Codex Apps `astro1` connector, use
-`astro1_send_telegram_text_as_pdf`.
+`send_telegram_text_as_pdf`.
 
 ```json
 {

@@ -31,7 +31,7 @@ the start, midpoint, and end.
 }
 ```
 
-Use `astro1_calculate_profile_life_period_overview` through the Codex Apps connector.
+Use `calculate_profile_life_period_overview` through the Codex Apps connector.
 
 ## Response
 
