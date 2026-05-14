@@ -60,6 +60,18 @@ class ForecastCalculationSettings(SynastryCalculationSettings):
     include_outer_planet_transits: bool = True
 
 
+class ProgressionCalculationSettings(ChartCalculationSettings):
+    start_age: int = Field(default=0, ge=0, le=120)
+    end_age: int = Field(default=84, ge=1, le=120)
+    period_years: int = Field(default=7, ge=1, le=30)
+    techniques: list[str] = Field(
+        default_factory=lambda: ["secondary_progressions", "solar_arc_directions"]
+    )
+    sample_strategy: str = "start_mid_end"
+    max_orb: float = Field(default=2, ge=0, le=10)
+    include_angles: bool = True
+
+
 class BirthData(BaseModel):
     name: str
     birth_date: date

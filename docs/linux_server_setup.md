@@ -107,6 +107,8 @@ conda run -n astro python -c "import asyncio; from astrology_mcp.mcp_server impo
 `send_telegram_text_as_pdf`, `astro1_send_telegram_text_as_pdf`,
 `astro1_get_profile_by_name`, and `astro1_calculate_profile_natal_chart` must appear in
 this list. The `astro1_*` names are compatibility aliases for the Codex Apps connector.
+`astro1_calculate_profile_life_period_overview` must also appear for progression and
+direction life reviews.
 Legacy Telegram tools such as `send_telegram_pdf`, `send_telegram_markdown`, and
 `send_telegram_text` must not appear, including their `astro1_*` variants.
 If `list_supported_features` shows a tool but the external MCP client does not expose it,

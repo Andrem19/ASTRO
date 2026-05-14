@@ -24,6 +24,12 @@ from astrology_mcp.tools.profile_tools import (
     list_profiles,
     update_profile,
 )
+from astrology_mcp.tools.progression_tools import (
+    calculate_life_period_overview,
+    calculate_life_progressions,
+    calculate_profile_life_period_overview,
+    calculate_profile_life_progressions,
+)
 from astrology_mcp.tools.synastry_tools import (
     calculate_profile_synastry,
     calculate_relationship_summary,
@@ -414,6 +420,38 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
             transit_datetime=transit_datetime,
             settings=settings,
         )
+
+    @mcp.tool(name="astro1_calculate_life_progressions")
+    @mcp.tool(name="calculate_life_progressions")
+    def calculate_life_progressions_tool(
+        natal: dict[str, object],
+        settings: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        return calculate_life_progressions(natal, settings)
+
+    @mcp.tool(name="astro1_calculate_profile_life_progressions")
+    @mcp.tool(name="calculate_profile_life_progressions")
+    def calculate_profile_life_progressions_tool(
+        profile_id: str,
+        settings: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        return calculate_profile_life_progressions(profile_id, settings)
+
+    @mcp.tool(name="astro1_calculate_life_period_overview")
+    @mcp.tool(name="calculate_life_period_overview")
+    def calculate_life_period_overview_tool(
+        natal: dict[str, object],
+        settings: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        return calculate_life_period_overview(natal, settings)
+
+    @mcp.tool(name="astro1_calculate_profile_life_period_overview")
+    @mcp.tool(name="calculate_profile_life_period_overview")
+    def calculate_profile_life_period_overview_tool(
+        profile_id: str,
+        settings: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        return calculate_profile_life_period_overview(profile_id, settings)
 
     @mcp.tool(name="astro1_send_telegram_text_as_pdf")
     @mcp.tool(name="send_telegram_text_as_pdf")

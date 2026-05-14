@@ -45,6 +45,10 @@ Returns planned MCP tools:
 - `calculate_profile_year_forecast`
 - `calculate_profile_day_forecast`
 - `generate_transit_chart_svg`
+- `calculate_life_progressions`
+- `calculate_profile_life_progressions`
+- `calculate_life_period_overview`
+- `calculate_profile_life_period_overview`
 - `send_telegram_text_as_pdf`
 
 The server also registers `astro1_*` compatibility aliases for the Codex Apps connector.
@@ -127,6 +131,19 @@ peak dates, themes, and LLM context.
 - `generate_transit_chart_svg`: return a transit chart SVG payload.
 
 See `docs/transits.md` and `docs/forecasts.md`.
+
+## Progression And Direction Tools
+
+Life overview tools combine secondary progressions and solar arc directions. They return
+structured periods and LLM context; the agent writes the final interpretation.
+
+- `calculate_life_progressions`: life-period overview from raw natal birth data.
+- `calculate_profile_life_progressions`: life-period overview for a stored profile.
+- `calculate_life_period_overview`: alias for raw natal life overview.
+- `calculate_profile_life_period_overview`: alias for profile life overview.
+
+Use `astro1_calculate_profile_life_period_overview` through the Codex Apps connector.
+See `docs/progressions_directions.md`.
 
 ### `calculate_profile_day_forecast`
 
