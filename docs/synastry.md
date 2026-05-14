@@ -98,5 +98,5 @@ generation is isolated from the main JSON calculation.
 ## Tests
 
 ```bash
-conda run -n astro pytest tests/unit/test_synastry.py
+conda run -n astro pytest -n 4 tests/unit/test_synastry.py
 ```

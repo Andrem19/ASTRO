@@ -54,6 +54,10 @@ Returns planned MCP tools:
 The server intentionally exposes only base tool names. MCP clients already namespace
 tools by server name, so `astro1_*` aliases are not registered.
 
+Each tool has an agent-facing English description in `tools/list`. The server also
+exposes `astro://tool-guide` and the `astro_tool_routing_guide` prompt with routing rules
+for choosing natal, forecast, synastry, life overview, profile, and Telegram PDF tools.
+
 ## `calculate_natal_chart`
 
 Calculates a full natal chart from local birth date, birth time, and birth location.

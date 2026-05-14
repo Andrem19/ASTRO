@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable, MutableMapping
 from http import HTTPStatus
-from typing import Any
+from typing import Any, TypeVar
 
 from fastmcp import FastMCP
 
@@ -13,6 +13,12 @@ from astrology_mcp.config import Settings, get_settings
 from astrology_mcp.logging import configure_logging
 from astrology_mcp.services.telegram_notifier import TelegramNotifier
 from astrology_mcp.tools.health_tools import health_check, list_supported_features, server_info
+from astrology_mcp.tools.metadata import (
+    ASTRO_TOOL_GUIDE,
+    TOOL_GUIDE_URI,
+    TOOL_ROUTING_PROMPT_NAME,
+    tool_metadata,
+)
 from astrology_mcp.tools.natal_chart_tools import calculate_natal_chart
 from astrology_mcp.tools.profile_tools import (
     calculate_profile_natal_chart,
@@ -53,6 +59,17 @@ Receive = Callable[[], Awaitable[AsgiMessage]]
 Send = Callable[[AsgiMessage], Awaitable[None]]
 AsgiScope = MutableMapping[str, Any]
 AsgiApp = Callable[[AsgiScope, Receive, Send], Awaitable[None]]
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def _tool(mcp: FastMCP, name: str) -> Callable[[F], F]:
+    metadata = tool_metadata(name)
+    return mcp.tool(
+        name=name,
+        title=metadata.title,
+        description=metadata.description,
+        tags=metadata.tags,
+    )
 
 
 class ApiKeyAuthMiddleware:
@@ -169,19 +186,39 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     settings = settings or get_settings()
     mcp = FastMCP(settings.app_name)
 
-    @mcp.tool(name="health_check")
+    @mcp.resource(
+        TOOL_GUIDE_URI,
+        name="astro_tool_guide",
+        title="Astro MCP Tool Guide",
+        description="Routing guide that explains when to use each astrology MCP tool group.",
+        mime_type="text/markdown",
+        tags={"guide", "routing"},
+    )
+    def astro_tool_guide_resource() -> str:
+        return ASTRO_TOOL_GUIDE
+
+    @mcp.prompt(
+        name=TOOL_ROUTING_PROMPT_NAME,
+        title="Astro Tool Routing Guide",
+        description="Instruction prompt for choosing the correct astro1 MCP tool.",
+        tags={"guide", "routing"},
+    )
+    def astro_tool_routing_guide_prompt() -> str:
+        return ASTRO_TOOL_GUIDE
+
+    @_tool(mcp, "health_check")
     def health_check_tool() -> dict[str, object]:
         return health_check(settings)
 
-    @mcp.tool(name="server_info")
+    @_tool(mcp, "server_info")
     def server_info_tool() -> dict[str, object]:
         return server_info(settings)
 
-    @mcp.tool(name="list_supported_features")
+    @_tool(mcp, "list_supported_features")
     def list_supported_features_tool() -> dict[str, object]:
         return list_supported_features()
 
-    @mcp.tool(name="calculate_natal_chart")
+    @_tool(mcp, "calculate_natal_chart")
     def calculate_natal_chart_tool(
         name: str,
         birth_date: str,
@@ -203,7 +240,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
             settings=settings,
         )
 
-    @mcp.tool(name="create_profile")
+    @_tool(mcp, "create_profile")
     def create_profile_tool(
         name: str,
         birth_date: str,
@@ -229,7 +266,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
             notes=notes,
         )
 
-    @mcp.tool(name="get_profile")
+    @_tool(mcp, "get_profile")
     def get_profile_tool(
         profile_id: str,
         include_private_notes: bool = False,
@@ -237,7 +274,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     ) -> dict[str, object]:
         return get_profile(profile_id, include_private_notes, include_deleted)
 
-    @mcp.tool(name="get_profile_by_name")
+    @_tool(mcp, "get_profile_by_name")
     def get_profile_by_name_tool(
         name: str,
         include_private_notes: bool = False,
@@ -251,19 +288,19 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
             limit=limit,
         )
 
-    @mcp.tool(name="list_profiles")
+    @_tool(mcp, "list_profiles")
     def list_profiles_tool(include_deleted: bool = False, limit: int = 100) -> dict[str, object]:
         return list_profiles(include_deleted=include_deleted, limit=limit)
 
-    @mcp.tool(name="update_profile")
+    @_tool(mcp, "update_profile")
     def update_profile_tool(profile_id: str, updates: dict[str, object]) -> dict[str, object]:
         return update_profile(profile_id, updates)
 
-    @mcp.tool(name="delete_profile")
+    @_tool(mcp, "delete_profile")
     def delete_profile_tool(profile_id: str) -> dict[str, str]:
         return delete_profile(profile_id)
 
-    @mcp.tool(name="calculate_profile_natal_chart")
+    @_tool(mcp, "calculate_profile_natal_chart")
     def calculate_profile_natal_chart_tool(
         profile_id: str,
         settings: dict[str, object] | None = None,
@@ -271,11 +308,11 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     ) -> dict[str, object]:
         return calculate_profile_natal_chart(profile_id, settings=settings, use_cache=use_cache)
 
-    @mcp.tool(name="clear_profile_chart_cache")
+    @_tool(mcp, "clear_profile_chart_cache")
     def clear_profile_chart_cache_tool(profile_id: str) -> dict[str, int | str]:
         return clear_profile_chart_cache(profile_id)
 
-    @mcp.tool(name="calculate_synastry")
+    @_tool(mcp, "calculate_synastry")
     def calculate_synastry_tool(
         person_a: dict[str, object],
         person_b: dict[str, object],
@@ -283,7 +320,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     ) -> dict[str, object]:
         return calculate_synastry(person_a, person_b, settings)
 
-    @mcp.tool(name="calculate_profile_synastry")
+    @_tool(mcp, "calculate_profile_synastry")
     def calculate_profile_synastry_tool(
         profile_id_a: str,
         profile_id_b: str,
@@ -297,11 +334,11 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
             use_cache=use_cache,
         )
 
-    @mcp.tool(name="calculate_relationship_summary")
+    @_tool(mcp, "calculate_relationship_summary")
     def calculate_relationship_summary_tool(synastry: dict[str, object]) -> dict[str, object]:
         return calculate_relationship_summary(synastry)
 
-    @mcp.tool(name="generate_synastry_chart_svg")
+    @_tool(mcp, "generate_synastry_chart_svg")
     def generate_synastry_chart_svg_tool(
         person_a: dict[str, object] | None = None,
         person_b: dict[str, object] | None = None,
@@ -317,7 +354,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
             settings=settings,
         )
 
-    @mcp.tool(name="calculate_transits")
+    @_tool(mcp, "calculate_transits")
     def calculate_transits_tool(
         natal: dict[str, object],
         transit_datetime: str,
@@ -325,7 +362,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     ) -> dict[str, object]:
         return calculate_transits(natal, transit_datetime, settings)
 
-    @mcp.tool(name="calculate_profile_transits")
+    @_tool(mcp, "calculate_profile_transits")
     def calculate_profile_transits_tool(
         profile_id: str,
         transit_datetime: str,
@@ -333,7 +370,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     ) -> dict[str, object]:
         return calculate_profile_transits(profile_id, transit_datetime, settings)
 
-    @mcp.tool(name="calculate_month_forecast")
+    @_tool(mcp, "calculate_month_forecast")
     def calculate_month_forecast_tool(
         natal: dict[str, object],
         year: int,
@@ -342,7 +379,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     ) -> dict[str, object]:
         return calculate_month_forecast(natal, year, month, settings)
 
-    @mcp.tool(name="calculate_year_forecast")
+    @_tool(mcp, "calculate_year_forecast")
     def calculate_year_forecast_tool(
         natal: dict[str, object],
         year: int,
@@ -350,7 +387,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     ) -> dict[str, object]:
         return calculate_year_forecast(natal, year, settings)
 
-    @mcp.tool(name="calculate_profile_month_forecast")
+    @_tool(mcp, "calculate_profile_month_forecast")
     def calculate_profile_month_forecast_tool(
         profile_id: str,
         year: int,
@@ -359,7 +396,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     ) -> dict[str, object]:
         return calculate_profile_month_forecast(profile_id, year, month, settings)
 
-    @mcp.tool(name="calculate_profile_year_forecast")
+    @_tool(mcp, "calculate_profile_year_forecast")
     def calculate_profile_year_forecast_tool(
         profile_id: str,
         year: int,
@@ -367,7 +404,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     ) -> dict[str, object]:
         return calculate_profile_year_forecast(profile_id, year, settings)
 
-    @mcp.tool(name="calculate_profile_day_forecast")
+    @_tool(mcp, "calculate_profile_day_forecast")
     def calculate_profile_day_forecast_tool(
         profile_id: str,
         date: str,
@@ -383,7 +420,7 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
             settings=settings,
         )
 
-    @mcp.tool(name="generate_transit_chart_svg")
+    @_tool(mcp, "generate_transit_chart_svg")
     def generate_transit_chart_svg_tool(
         natal: dict[str, object] | None = None,
         profile_id: str | None = None,
@@ -397,35 +434,35 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
             settings=settings,
         )
 
-    @mcp.tool(name="calculate_life_progressions")
+    @_tool(mcp, "calculate_life_progressions")
     def calculate_life_progressions_tool(
         natal: dict[str, object],
         settings: dict[str, object] | None = None,
     ) -> dict[str, object]:
         return calculate_life_progressions(natal, settings)
 
-    @mcp.tool(name="calculate_profile_life_progressions")
+    @_tool(mcp, "calculate_profile_life_progressions")
     def calculate_profile_life_progressions_tool(
         profile_id: str,
         settings: dict[str, object] | None = None,
     ) -> dict[str, object]:
         return calculate_profile_life_progressions(profile_id, settings)
 
-    @mcp.tool(name="calculate_life_period_overview")
+    @_tool(mcp, "calculate_life_period_overview")
     def calculate_life_period_overview_tool(
         natal: dict[str, object],
         settings: dict[str, object] | None = None,
     ) -> dict[str, object]:
         return calculate_life_period_overview(natal, settings)
 
-    @mcp.tool(name="calculate_profile_life_period_overview")
+    @_tool(mcp, "calculate_profile_life_period_overview")
     def calculate_profile_life_period_overview_tool(
         profile_id: str,
         settings: dict[str, object] | None = None,
     ) -> dict[str, object]:
         return calculate_profile_life_period_overview(profile_id, settings)
 
-    @mcp.tool(name="send_telegram_text_as_pdf")
+    @_tool(mcp, "send_telegram_text_as_pdf")
     async def send_telegram_text_as_pdf_tool(
         file_name: str,
         content: str,

@@ -93,10 +93,14 @@ conda run -n astro alembic revision --autogenerate -m "message"
 ## Checks
 
 ```bash
-conda run -n astro pytest
+conda run -n astro pytest -n 4
 conda run -n astro ruff check .
 conda run -n astro mypy astrology_mcp
 ```
+
+Tests must be fast and parallel-safe. Use pytest-xdist with `-n 4`, keep each unit test
+under 1 second, and mock slow calculations, network calls, filesystem-heavy work, and
+external services. Pytest prints the top 20 slowest tests at the end of each run.
 
 Verify the FastMCP tool registry after deploy or restart:
 

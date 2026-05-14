@@ -53,5 +53,5 @@ the main transit JSON path, so rendering failures do not break transit calculati
 ## Tests
 
 ```bash
-conda run -n astro pytest tests/unit/test_transits.py
+conda run -n astro pytest -n 4 tests/unit/test_transits.py
 ```

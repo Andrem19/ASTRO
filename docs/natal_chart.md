@@ -111,5 +111,5 @@ to 6 decimal places and aspect orbs to 4 decimal places.
 Run natal chart tests only inside `astro`:
 
 ```bash
-conda run -n astro pytest tests/unit/test_natal_chart.py
+conda run -n astro pytest -n 4 tests/unit/test_natal_chart.py
 ```

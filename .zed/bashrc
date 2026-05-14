@@ -1,0 +1,10 @@
+#!/bin/bash
+# ZED custom bashrc for this project
+# Sources the default ~/.bashrc and activates conda astro
+
+if [ -f ~/.bashrc ]; then
+    source ~/.bashrc
+fi
+
+source /home/jupiter/miniconda3/etc/profile.d/conda.sh
+conda activate astro

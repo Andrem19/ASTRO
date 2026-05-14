@@ -91,5 +91,5 @@ and ephemeris calculations. The result is interpretive material, not certainty.
 ## Tests
 
 ```bash
-conda run -n astro pytest tests/unit/test_transits.py
+conda run -n astro pytest -n 4 tests/unit/test_transits.py
 ```

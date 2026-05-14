@@ -30,7 +30,7 @@ include = ["astrology_mcp*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --durations=20 --durations-min=0"
 asyncio_mode = "auto"
 
 [tool.ruff]
